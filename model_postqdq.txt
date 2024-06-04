@@ -1,0 +1,484 @@
+YOLO(
+  (model): DetectionModel(
+    (model): Sequential(
+      (0): Conv(
+        (conv): Conv2d(3, 48, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (1): Conv(
+        (conv): Conv2d(48, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (2): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(192, 96, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(48, 48, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(48, 48, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=16.0312 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=16.5156 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (1): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(48, 48, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(48, 48, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=21.4688 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=25.3281 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=43.5000 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (3): Conv(
+        (conv): Conv2d(96, 192, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (4): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(192, 192, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(576, 192, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=7.5820 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=5.9570 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (1): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=8.5625 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=9.9609 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (2): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=11.9609 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=13.8594 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (3): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=15.5547 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=20.5625 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=17.0625 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (5): Conv(
+        (conv): Conv2d(192, 384, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (6): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(384, 384, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(1152, 384, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=13.7031 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=7.4375 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (1): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=13.6094 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=12.7812 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (2): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=14.4844 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=17.6875 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (3): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=18.7344 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=28.0469 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=19.7969 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (7): Conv(
+        (conv): Conv2d(384, 576, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (8): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(576, 576, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(1152, 576, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=16.3750 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=19.4531 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+          (1): Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (addop): QuantAdd(
+              (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=19.2188 calibrator=MaxCalibrator scale=1.0 quant)
+              (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=15.8594 calibrator=MaxCalibrator scale=1.0 quant)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=21.2031 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (9): SPPF(
+        (cv1): Conv(
+          (conv): Conv2d(576, 288, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(1152, 576, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): MaxPool2d(kernel_size=5, stride=1, padding=2, dilation=1, ceil_mode=False)
+      )
+      (10): Upsample(
+        scale_factor=2.0, mode='nearest'
+        (upsampleop): QuantUpsample(
+          (_input_quantizer): TensorQuantizer(8bit fake per-tensor amax=11.1719 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (11): Concat(
+        (concatop): QuantConcat(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=11.1719 calibrator=MaxCalibrator scale=1.0 quant)
+          (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=18.9688 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (12): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(960, 384, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(768, 384, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0-1): 2 x Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=16.9688 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (13): Upsample(
+        scale_factor=2.0, mode='nearest'
+        (upsampleop): QuantUpsample(
+          (_input_quantizer): TensorQuantizer(8bit fake per-tensor amax=12.7344 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (14): Concat(
+        (concatop): QuantConcat(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=12.7344 calibrator=MaxCalibrator scale=1.0 quant)
+          (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=13.8984 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (15): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(576, 192, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(384, 192, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0-1): 2 x Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=11.1328 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (16): Conv(
+        (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (17): Concat(
+        (concatop): QuantConcat(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=15.3516 calibrator=MaxCalibrator scale=1.0 quant)
+          (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=12.7344 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (18): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(576, 384, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(768, 384, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0-1): 2 x Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=18.9844 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (19): Conv(
+        (conv): Conv2d(384, 384, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (act): SiLU(inplace=True)
+      )
+      (20): Concat(
+        (concatop): QuantConcat(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=12.7891 calibrator=MaxCalibrator scale=1.0 quant)
+          (_input1_quantizer): TensorQuantizer(8bit fake per-tensor amax=11.1719 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (21): C2f(
+        (cv1): Conv(
+          (conv): Conv2d(960, 576, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (cv2): Conv(
+          (conv): Conv2d(1152, 576, kernel_size=(1, 1), stride=(1, 1))
+          (act): SiLU(inplace=True)
+        )
+        (m): ModuleList(
+          (0-1): 2 x Bottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+          )
+        )
+        (c2fchunkop): QuantC2fChunk(
+          (_input0_quantizer): TensorQuantizer(8bit fake per-tensor amax=17.8906 calibrator=MaxCalibrator scale=1.0 quant)
+        )
+      )
+      (22): Detect(
+        (cv2): ModuleList(
+          (0): Sequential(
+            (0): Conv(
+              (conv): Conv2d(192, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (1): Conv(
+              (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (2): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (1): Sequential(
+            (0): Conv(
+              (conv): Conv2d(384, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (1): Conv(
+              (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (2): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (2): Sequential(
+            (0): Conv(
+              (conv): Conv2d(576, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (1): Conv(
+              (conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (2): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          )
+        )
+        (cv3): ModuleList(
+          (0): Sequential(
+            (0): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (2): Conv2d(192, 80, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (1): Sequential(
+            (0): Conv(
+              (conv): Conv2d(384, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (2): Conv2d(192, 80, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (2): Sequential(
+            (0): Conv(
+              (conv): Conv2d(576, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (1): Conv(
+              (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+              (act): SiLU(inplace=True)
+            )
+            (2): Conv2d(192, 80, kernel_size=(1, 1), stride=(1, 1))
+          )
+        )
+        (dfl): DFL(
+          (conv): Conv2d(16, 1, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+  )
+)

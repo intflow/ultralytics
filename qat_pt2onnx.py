@@ -203,6 +203,7 @@ def collate_fn(batch):
 
 def graphsurgeon_model(input_model_path, output_model_path):
     onnx_model = onnx.load(input_model_path)
+    onnx.checker.check_model(onnx_model)
     graph = gs.import_onnx(onnx_model)
     nodes = graph.nodes
     mul_nodes = [node for node in nodes if node.op == "Mul" and node.i(0).op == "BatchNormalization" and node.i(1).op == "Sigmoid"]
@@ -270,97 +271,132 @@ def modify_onnx_model(onnx_file_in_path, onnx_file_out_path):
         last_conv = conv_nodes[-1]
     onnx.save(onnx_model, onnx_file_out_path)
     print("Modified ONNX model saved at:", onnx_file_out_path)
-    onnx_model = YOLO(onnx_file_out_path)
-    results = onnx_model('https://ultralytics.com/images/bus.jpg')
-
-def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    '''
-    ###############################################################################################################
-    ###############################################################################################################
-    print("1. Load target FP32 model")
-    model = YOLO('yolov8m.pt')
 
 
-    ###############################################################################################################
-    ###############################################################################################################
-    print("2. Add Q/DQ Layers to the YOLO model")
-    for name, module in model.named_modules():
-        if module.__class__.__name__ == "C2f":
-            if not hasattr(module, "c2fchunkop"):
-                module.c2fchunkop = QuantC2fChunk(module.c)
-            module.__class__.forward = c2f_qaunt_forward
-        if module.__class__.__name__ == "Bottleneck":
-            if module.add:
-                if not hasattr(module, "addop"):
-                    module.addop = QuantAdd(module.add)
-                module.__class__.forward = bottleneck_quant_forward
-        if module.__class__.__name__ == "Concat":
-            if not hasattr(module, "concatop"):
-                module.concatop = QuantConcat(module.d)
-            module.__class__.forward = concat_quant_forward
-        if module.__class__.__name__ == "Upsample":
-            if not hasattr(module, "upsampleop"):
-                module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
-            module.__class__.forward = upsample_quant_forward
+import argparse
+import configparser
 
-    ###############################################################################################################
-    ###############################################################################################################
-    print("3. Get Calibration values for the Q/DQ model")
-    batch_size = 128
-    train_data_dir = '/DL_data_super_hdd/coco_dataset/data/images/train2017'
-    train_ann_file = '/DL_data_super_hdd/coco_dataset/annotations/instances_train2017.json'
-    #val_data_dir = '/DL_data_super_hdd/coco_dataset/data/images/val2017/'
-    #val_ann_file = '/DL_data_super_hdd/coco_dataset/annotations/instances_val2017.json'
+def load_config(cfg_path):
+    config = configparser.ConfigParser()
+    config.read(cfg_path)
+    return config
 
-    model.to(device)
-
-    # Dataset and DataLoader setup
-    dataset = CustomCocoDataset(root=train_data_dir, annFile=train_ann_file, transform=transform)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True,collate_fn=collate_fn, pin_memory=True)
-    #dataset_test = CustomCocoDataset(root=val_data_dir, annFile=val_ann_file, transform=transform)
-    #data_loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=True,collate_fn=collate_fn, pin_memory=True)
-
-    cal_model(model, data_loader, device, num_batch=8, model_save_path='yolov8m_qdq_cal.pt')
-    '''
-
-    ###############################################################################################################
-    ###############################################################################################################
-    print("4. Load Q/DQ model with calibration values for QAT")
-    model = YOLO('yolov8m_qdq_cal.pt')
-    model.train(data="coco.yaml", cfg="qat.yaml", epochs=20, batch=32)
+def main(args):
+    config = load_config(args.config)
     
+    # Set Pathes
+    onnx_model_path = config['Paths']['onnx_model_path']
+    onnx_o1_model_path = config['Paths']['onnx_o1_model_path']
+    onnx_o2_model_path = config['Paths']['onnx_o2_model_path']
 
-    ###############################################################################################################
-    ###############################################################################################################
-    print("5. Convert .pt to .onnx")
-    model = YOLO('runs/detect/train17/weights/last.pt')
-    model.to(device)
-    quant_modules.initialize()
-    quant_nn.TensorQuantizer.use_fb_fake_quant = True
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    if '1' in args.steps:
+        print("1. Load target FP32 model")
+        model = YOLO(config['Paths']['fp32_model'])
 
-    dummy_input = torch.randn(1, 3, 640, 640, device='cuda')
-    with pytorch_quantization.enable_onnx_export():
-        torch.onnx.export(model.model, dummy_input, "yolov8m_qat.onnx", verbose=True, opset_version=13)
-    quant_nn.TensorQuantizer.use_fb_fake_quant = False
-    print("Successfully exported YOLOv8 ONNX!")
+    if '2' in args.steps:
+        print("2. Add Q/DQ Layers to the YOLO model")
+        for name, module in model.named_modules():
+            if module.__class__.__name__ == "C2f":
+                if not hasattr(module, "c2fchunkop"):
+                    module.c2fchunkop = QuantC2fChunk(module.c)
+                module.__class__.forward = c2f_qaunt_forward
+            if module.__class__.__name__ == "Bottleneck":
+                if module.add:
+                    if not hasattr(module, "addop"):
+                        module.addop = QuantAdd(module.add)
+                    module.__class__.forward = bottleneck_quant_forward
+            if module.__class__.__name__ == "Concat":
+                if not hasattr(module, "concatop"):
+                    module.concatop = QuantConcat(module.d)
+                module.__class__.forward = concat_quant_forward
+            if module.__class__.__name__ == "Upsample":
+                if not hasattr(module, "upsampleop"):
+                    module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
+                module.__class__.forward = upsample_quant_forward
 
-    input_model_path = "yolov8m_qat.onnx"
-    opt1_model_path = "yolov8m_qat_opt.onnx"
-    opt2_model_path = "yolov8m_qat_opt2.onnx"
+    if '3' in args.steps:
+        print("3. Get Calibration values for the Q/DQ model")
+        batch_size = int(config['Training']['batch_size'])
+        train_data_dir = config['Paths']['train_data_dir']
+        train_ann_file = config['Paths']['train_ann_file']
 
+        model.to(device)
 
-    ###############################################################################################################
-    ###############################################################################################################
-    print("6. Remove redundant Q/DQ layer")
-    graphsurgeon_model(input_model_path, opt1_model_path)
-    print("Optimized ONNX model saved at:", opt1_model_path)
+        dataset = CustomCocoDataset(root=train_data_dir, annFile=train_ann_file, transform=transform)
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, pin_memory=True)
 
+        cal_model(model, data_loader, device, num_batch=int(config['Training']['num_batch']), model_save_path=config['Paths']['calibrated_model'])
+    
+    if '4' in args.steps:
+        print("4. Load Q/DQ model with calibration values for QAT")
+        model = YOLO(config['Paths']['calibrated_model'])
+        model.train(data=config['Paths']['data_yaml'], cfg=config['Paths']['qat_cfg'], epochs=int(config['Training']['epochs']), batch=int(config['Training']['batch']))
+    
+    if '5' in args.steps:
+        print("5. Convert .pt to .onnx")
+        model = YOLO(config['Paths']['qat_model'])
+        model.to(device)
 
-    ###############################################################################################################
-    ###############################################################################################################
-    print("7. Remove Conv Q/DQ in DFL block")
-    modify_onnx_model(opt1_model_path, opt2_model_path)
+        for name, module in model.named_modules():
+            if module.__class__.__name__ == "C2f":
+                if not hasattr(module, "c2fchunkop"):
+                    module.c2fchunkop = QuantC2fChunk(module.c)
+                module.__class__.forward = c2f_qaunt_forward
+            if module.__class__.__name__ == "Bottleneck":
+                if module.add:
+                    if not hasattr(module, "addop"):
+                        module.addop = QuantAdd(module.add)
+                    module.__class__.forward = bottleneck_quant_forward
+            if module.__class__.__name__ == "Concat":
+                if not hasattr(module, "concatop"):
+                    module.concatop = QuantConcat(module.d)
+                module.__class__.forward = concat_quant_forward
+            if module.__class__.__name__ == "Upsample":
+                if not hasattr(module, "upsampleop"):
+                    module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
+                module.__class__.forward = upsample_quant_forward
+
+        quant_modules.initialize()
+        quant_nn.TensorQuantizer.use_fb_fake_quant = True
+        dummy_input = torch.randn(128, 3, 640, 640).to(device)
+    
+        with pytorch_quantization.enable_onnx_export(): 
+            try:
+                torch.onnx.export(
+                    model.model,
+                    dummy_input,
+                    onnx_model_path,
+                    opset_version=13,
+                    do_constant_folding=True,
+                    input_names=['input'],
+                    output_names=['output'],
+                    dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+                )
+            except Exception as e:
+                print(f"Error during export: {e}")
+        quant_nn.TensorQuantizer.use_fb_fake_quant = False
+        print("Successfully exported YOLOv8 ONNX!")
+
+    if '6' in args.steps:
+        print("6. Remove redundant Q/DQ layer")
+        graphsurgeon_model(onnx_model_path, onnx_o1_model_path)
+        print("Optimized ONNX model saved at:", onnx_o1_model_path)
+
+    if '7' in args.steps:
+        print("7. Remove Conv Q/DQ in DFL block")
+        modify_onnx_model(onnx_o1_model_path, onnx_o2_model_path)
+
+    if '8' in args.steps:
+        print("8. Test final model's accuracy")
+        onnx_model = YOLO(onnx_o2_model_path)
+        results = onnx_model('https://ultralytics.com/images/bus.jpg')
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="YOLOv8 QAT Pipeline")
+    parser.add_argument('--steps', nargs='+', default=['8'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
+    parser.add_argument('--config', type=str, default='qat_setting.cfg', help='Path to the configuration file')
+    
+    args = parser.parse_args()
+    main(args)

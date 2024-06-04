@@ -404,7 +404,7 @@ class Exporter:
             self.model.cpu() if dynamic else self.model,  # dynamic=True only compatible with cpu
             self.im.cpu() if dynamic else self.im,
             f,
-            verbose=False,
+            verbose=True,
             opset_version=opset_version,
             do_constant_folding=True,  # WARNING: DNN inference with torch>=1.12 may require do_constant_folding=False
             input_names=["images"],
