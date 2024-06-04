@@ -86,7 +86,6 @@ def upsample_quant_forward(self, x):
     else:
         raise ValueError("either size or scale_factor should be defined")
 
-
 def c2f_qaunt_forward(self, x):
     if hasattr(self, "c2fchunkop"):
         y = list(self.c2fchunkop(self.cv1(x), 2, 1))
@@ -315,6 +314,9 @@ def main(args):
                 if not hasattr(module, "upsampleop"):
                     module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
                 module.__class__.forward = upsample_quant_forward
+            #Change SiLU to ReLU
+            if module.__class__.__name__ == "SiLU":
+                setattr(module, name, torch.nn.ReLU())
 
     if '3' in args.steps:
         print("3. Get Calibration values for the Q/DQ model")
@@ -395,7 +397,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="YOLOv8 QAT Pipeline")
-    parser.add_argument('--steps', nargs='+', default=['8'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
+    parser.add_argument('--steps', nargs='+', default=['1', '2', '3', '4', '5', '6', '7', '8'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
     parser.add_argument('--config', type=str, default='qat_setting.cfg', help='Path to the configuration file')
     
     args = parser.parse_args()
