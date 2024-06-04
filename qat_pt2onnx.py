@@ -96,6 +96,48 @@ def c2f_qaunt_forward(self, x):
         y.extend(m(y[-1]) for m in self.m)
         return self.cv2(torch.cat(y, 1))
 
+def replace_conv2d_with_quantconv2d(module):
+    """
+    Recursively replace all Conv2d layers with QuantConv2D layers in the given module.
+    """
+    for name, child in module.named_children():
+        if child.__class__.__name__  == 'Conv2d':
+            # Extract the arguments from the original Conv2d layer
+            in_channels = child.in_channels
+            out_channels = child.out_channels
+            kernel_size = child.kernel_size
+            stride = child.stride
+            padding = child.padding
+            dilation = child.dilation
+            groups = child.groups
+            bias = child.bias is not None
+            padding_mode = child.padding_mode
+
+            # Create a QuantConv2d layer with the same parameters as the original Conv2d layer
+            quant_conv2d = quant_nn.QuantConv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding,
+                                            dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
+            
+            # Replace the Conv2d layer with the QuantConv2D layer
+            setattr(module, name, quant_conv2d)
+        else:
+            # Recursively apply to child modules
+            replace_conv2d_with_quantconv2d(child)
+
+def replace_silu_with_relu(module):
+    """
+    Recursively replace all SiLU layers with ReLU layers in the given module.
+    """
+    for name, child in module.named_children():
+        if child.__class__.__name__ == 'SiLU':
+            # Create a new ReLU layer
+            relu = torch.nn.ReLU()
+
+            # Replace the SiLU layer with the ReLU layer
+            setattr(module, name, relu)
+        else:
+            # Recursively apply to child modules
+            replace_silu_with_relu(child)
+
 def cal_model(model, data_loader, device, num_batch=1024, model_save_path='cal.pth'):
     num_batch = num_batch
     def compute_amax(model, **kwargs):
@@ -133,7 +175,7 @@ def cal_model(model, data_loader, device, num_batch=1024, model_save_path='cal.p
         for i, datas in tqdm(enumerate(data_loader),  desc="Collect stats for calibrating"):
             if datas == None:
                 continue
-            imgs = datas[0].to(device, non_blocking=True)
+            imgs = datas[0].to(device, non_blocking=True).float()
             print(f"Feeding batch {i+1}/{num_batch} with shape {imgs.shape} to the model")
             model(imgs)
             if i >= num_batch:
@@ -291,11 +333,18 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     if '1' in args.steps:
-        print("1. Load target FP32 model")
+        print("1. Load target FP32 model and Q/DQ monkeypatching")
         model = YOLO(config['Paths']['fp32_model'])
 
     if '2' in args.steps:
         print("2. Add Q/DQ Layers to the YOLO model")
+        
+        #Convert Conv2d into QuantConv2d
+        replace_conv2d_with_quantconv2d(model)
+        #Convert SiLU into ReLU
+        replace_silu_with_relu(model)
+        
+        #Convert Additional layers
         for name, module in model.named_modules():
             if module.__class__.__name__ == "C2f":
                 if not hasattr(module, "c2fchunkop"):
@@ -314,22 +363,20 @@ def main(args):
                 if not hasattr(module, "upsampleop"):
                     module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
                 module.__class__.forward = upsample_quant_forward
-            #Change SiLU to ReLU
-            if module.__class__.__name__ == "SiLU":
-                setattr(module, name, torch.nn.ReLU())
-
+            
     if '3' in args.steps:
         print("3. Get Calibration values for the Q/DQ model")
-        batch_size = int(config['Training']['batch_size'])
+        batch_size = int(config['Calibration']['batch_size'])
         train_data_dir = config['Paths']['train_data_dir']
         train_ann_file = config['Paths']['train_ann_file']
+
 
         model.to(device)
 
         dataset = CustomCocoDataset(root=train_data_dir, annFile=train_ann_file, transform=transform)
         data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, pin_memory=True)
 
-        cal_model(model, data_loader, device, num_batch=int(config['Training']['num_batch']), model_save_path=config['Paths']['calibrated_model'])
+        cal_model(model, data_loader, device, num_batch=int(config['Calibration']['num_batch']), model_save_path=config['Paths']['calibrated_model'])
     
     if '4' in args.steps:
         print("4. Load Q/DQ model with calibration values for QAT")
@@ -359,10 +406,13 @@ def main(args):
                 if not hasattr(module, "upsampleop"):
                     module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
                 module.__class__.forward = upsample_quant_forward
+            #Change SiLU to ReLU
+            if module.__class__.__name__ == "SiLU":
+                module.__class__.__name__ = "ReLU"
+                setattr(module, name, torch.nn.ReLU())
 
-        quant_modules.initialize()
         quant_nn.TensorQuantizer.use_fb_fake_quant = True
-        dummy_input = torch.randn(128, 3, 640, 640).to(device)
+        dummy_input = torch.randn(1, 3, 640, 640).to(device)
     
         with pytorch_quantization.enable_onnx_export(): 
             try:
@@ -397,7 +447,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="YOLOv8 QAT Pipeline")
-    parser.add_argument('--steps', nargs='+', default=['1', '2', '3', '4', '5', '6', '7', '8'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
+    parser.add_argument('--steps', nargs='+', default=['1', '2', '3', '5', '6', '7'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
     parser.add_argument('--config', type=str, default='qat_setting.cfg', help='Path to the configuration file')
     
     args = parser.parse_args()
