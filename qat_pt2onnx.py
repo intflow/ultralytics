@@ -117,11 +117,36 @@ def replace_conv2d_with_quantconv2d(module):
             quant_conv2d = quant_nn.QuantConv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding,
                                             dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
             
+            # Copy the weights and bias from the original Conv2d layer
+            quant_conv2d.weight = torch.nn.Parameter(child.weight.data.float())
+            if bias:
+                quant_conv2d.bias = torch.nn.Parameter(child.bias.data.float())
+            
             # Replace the Conv2d layer with the QuantConv2D layer
             setattr(module, name, quant_conv2d)
         else:
             # Recursively apply to child modules
             replace_conv2d_with_quantconv2d(child)
+
+def convert_bn_weights_to_float(module):
+    """
+    Recursively convert all BatchNorm2d weights from half-float (float16) to float (float32) in the given module.
+    """
+    for name, child in module.named_children():
+        if isinstance(child, torch.nn.BatchNorm2d):
+            # Convert weights and biases to float32
+            if child.weight is not None:
+                child.weight.data = child.weight.data.float()
+            if child.bias is not None:
+                child.bias.data = child.bias.data.float()
+            # Convert running mean and variance to float32
+            if child.running_mean is not None:
+                child.running_mean = child.running_mean.float()
+            if child.running_var is not None:
+                child.running_var = child.running_var.float()
+        else:
+            # Recursively apply to child modules
+            convert_bn_weights_to_float(child)
 
 def replace_silu_with_relu(module):
     """
@@ -140,27 +165,13 @@ def replace_silu_with_relu(module):
 
 def cal_model(model, data_loader, device, num_batch=1024, model_save_path='cal.pth'):
     num_batch = num_batch
-    def compute_amax(model, **kwargs):
-        for name, module in model.named_modules():
-            if isinstance(module, quant_nn.TensorQuantizer):
-                if module._calibrator is not None:
-                    print(f"Calibrator type for {name}: {type(module._calibrator)}")
-
-                    if isinstance(module._calibrator, calib.MaxCalibrator):
-                        module.load_calib_amax(strict=False)
-                    else:
-                        module.load_calib_amax(**kwargs)
-
-                    module._amax = module._amax.to(device)
-                    if torch.isnan(module._amax).any():
-                        print(f"Warning: amax for {name} is NaN")
-                print(f"{name:40}: {module}")
-        model.to(device)
 
     def collect_stats(model, data_loader, device, num_batch=1024):
         """Feed data to the network and collect statistics"""
         # Enable calibrators
-        ##model.eval()
+        model.to(device)
+        model.eval()
+
         for name, module in model.named_modules():
             if isinstance(module, quant_nn.TensorQuantizer):
                 if module._calibrator is not None:
@@ -191,10 +202,25 @@ def cal_model(model, data_loader, device, num_batch=1024, model_save_path='cal.p
                 else:
                     module.enable()
 
+    def compute_amax(model, **kwargs):
+        for name, module in model.named_modules():
+            if isinstance(module, quant_nn.TensorQuantizer):
+                if module._calibrator is not None:
+                    print(f"Calibrator type for {name}: {type(module._calibrator)}")
+
+                    if isinstance(module._calibrator, calib.MaxCalibrator):
+                        module.load_calib_amax(strict=False)
+                    else:
+                        module.load_calib_amax(**kwargs)
+                        
+                    if torch.isnan(module._amax).any():
+                        print(f"Warning: amax for {name} is NaN")
+                print(f"{name:40}: {module}")
+        model.to(device)
+
     with torch.no_grad():
         collect_stats(model, data_loader, device, num_batch)
         compute_amax(model, method="mse")
-
 
     for name, module in model.named_modules():
         if isinstance(module, quant_nn.TensorQuantizer) and module._calibrator is not None:
@@ -205,8 +231,9 @@ def cal_model(model, data_loader, device, num_batch=1024, model_save_path='cal.p
             except AttributeError:
                 print(f"Calibrator for {name} does not have min_val or max_val attributes")
     
-    model.save(model_save_path)
+    torch.save(model, model_save_path)
     print(f"Model saved to {model_save_path}")
+
 
 class CustomCocoDataset(CocoDetection):
     def __init__(self, root, annFile, transform=None):
@@ -241,6 +268,7 @@ def collate_fn(batch):
     labels_padded = pad_sequence(labels, batch_first=True, padding_value=-1)
     targets_padded = [{'boxes': b, 'labels': l} for b, l in zip(boxes_padded, labels_padded)]
     return images, targets_padded
+
 
 def graphsurgeon_model(input_model_path, output_model_path):
     onnx_model = onnx.load(input_model_path)
@@ -331,16 +359,25 @@ def main(args):
     onnx_o2_model_path = config['Paths']['onnx_o2_model_path']
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
     if '1' in args.steps:
         print("1. Load target FP32 model and Q/DQ monkeypatching")
-        model = YOLO(config['Paths']['fp32_model'])
+        
+        quant_modules.initialize()
+        quant_desc_input = QuantDescriptor(calib_method='histogram')
+        quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+        quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+        
+        model = torch.load(config['Paths']['fp32_model'])['model']
+        model.eval()
 
     if '2' in args.steps:
         print("2. Add Q/DQ Layers to the YOLO model")
         
         #Convert Conv2d into QuantConv2d
         replace_conv2d_with_quantconv2d(model)
+        #Convert bn_weights to float32
+        convert_bn_weights_to_float(model)
         #Convert SiLU into ReLU
         replace_silu_with_relu(model)
         
@@ -370,9 +407,6 @@ def main(args):
         train_data_dir = config['Paths']['train_data_dir']
         train_ann_file = config['Paths']['train_ann_file']
 
-
-        model.to(device)
-
         dataset = CustomCocoDataset(root=train_data_dir, annFile=train_ann_file, transform=transform)
         data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, pin_memory=True)
 
@@ -380,44 +414,34 @@ def main(args):
     
     if '4' in args.steps:
         print("4. Load Q/DQ model with calibration values for QAT")
+        
+        model_fp32 = YOLO(config['Paths']['fp32_model'])
         model = YOLO(config['Paths']['calibrated_model'])
+        
+        model_fp32_dict = vars(model_fp32.model)
+        model_dict = vars(model.model)
+
+        # Copy items from model_fp32_dict to model_dict only if they don't already exist in model_dict
+        for key, value in model_fp32_dict.items():
+            if key not in model_dict:
+                setattr(model.model, key, value)
+                
+        model.model.qat = True # temporary flag for QAT
         model.train(data=config['Paths']['data_yaml'], cfg=config['Paths']['qat_cfg'], epochs=int(config['Training']['epochs']), batch=int(config['Training']['batch']))
     
     if '5' in args.steps:
         print("5. Convert .pt to .onnx")
-        model = YOLO(config['Paths']['qat_model'])
+        model = torch.load(config['Paths']['qat_model'])['model']
         model.to(device)
-
-        for name, module in model.named_modules():
-            if module.__class__.__name__ == "C2f":
-                if not hasattr(module, "c2fchunkop"):
-                    module.c2fchunkop = QuantC2fChunk(module.c)
-                module.__class__.forward = c2f_qaunt_forward
-            if module.__class__.__name__ == "Bottleneck":
-                if module.add:
-                    if not hasattr(module, "addop"):
-                        module.addop = QuantAdd(module.add)
-                    module.__class__.forward = bottleneck_quant_forward
-            if module.__class__.__name__ == "Concat":
-                if not hasattr(module, "concatop"):
-                    module.concatop = QuantConcat(module.d)
-                module.__class__.forward = concat_quant_forward
-            if module.__class__.__name__ == "Upsample":
-                if not hasattr(module, "upsampleop"):
-                    module.upsampleop = QuantUpsample(module.size, module.scale_factor, module.mode)
-                module.__class__.forward = upsample_quant_forward
-            #Change SiLU to ReLU
-            if module.__class__.__name__ == "SiLU":
-                module.__class__.__name__ = "ReLU"
-                setattr(module, name, torch.nn.ReLU())
+        model.eval()
 
         quant_nn.TensorQuantizer.use_fb_fake_quant = True
-        dummy_input = torch.randn(1, 3, 640, 640).to(device)
+        dummy_input = torch.randn(1, 3, 640, 640).half().to(device)
     
         with pytorch_quantization.enable_onnx_export(): 
             try:
                 torch.onnx.export(
-                    model.model,
+                    model,
                     dummy_input,
                     onnx_model_path,
                     opset_version=13,
@@ -447,7 +471,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="YOLOv8 QAT Pipeline")
-    parser.add_argument('--steps', nargs='+', default=['1', '2', '3', '5', '6', '7'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
+    parser.add_argument('--steps', nargs='+', default=['4', '5', '6', '7'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
     parser.add_argument('--config', type=str, default='qat_setting.cfg', help='Path to the configuration file')
     
     args = parser.parse_args()
