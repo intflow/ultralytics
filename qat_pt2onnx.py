@@ -431,12 +431,12 @@ def main(args):
     
     if '5' in args.steps:
         print("5. Convert .pt to .onnx")
-        model = torch.load(config['Paths']['qat_model'])['model']
+        model = torch.load(config['Paths']['qat_model'])
         model.to(device)
         model.eval()
 
         quant_nn.TensorQuantizer.use_fb_fake_quant = True
-        dummy_input = torch.randn(1, 3, 640, 640).half().to(device)
+        dummy_input = torch.randn(1, 3, 640, 640).to(device)
     
         with pytorch_quantization.enable_onnx_export(): 
             try:
@@ -448,7 +448,8 @@ def main(args):
                     do_constant_folding=True,
                     input_names=['input'],
                     output_names=['output'],
-                    dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+                    dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}},
+                    verbose=True
                 )
             except Exception as e:
                 print(f"Error during export: {e}")
@@ -471,7 +472,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="YOLOv8 QAT Pipeline")
-    parser.add_argument('--steps', nargs='+', default=['4', '5', '6', '7'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
+    parser.add_argument('--steps', nargs='+', default=['5', '6', '7'], help='List of steps to run (e.g., 1 2 3 4 5 6 7 8)')
     parser.add_argument('--config', type=str, default='qat_setting.cfg', help='Path to the configuration file')
     
     args = parser.parse_args()
